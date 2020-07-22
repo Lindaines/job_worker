@@ -1,0 +1,10 @@
+class Worker:
+    RUNNING = "running"
+    DONE = "done"
+    CANCELED = "canceled"
+    PAUSED = "paused"
+    RESUMED = "resumed"
+    ADD_JOB = "add"
+    REMOVE_JOB = "remove"
+    CANCEL_JOB = "cancel"
+    RESUME_JOB = "resume"

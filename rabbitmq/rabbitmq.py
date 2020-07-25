@@ -2,7 +2,7 @@ import json
 import pika
 from logzero import logger
 from pika.exceptions import ChannelClosed, ConnectionClosed
-from worker.worker_scheduler import SchedulerJob
+from controller.job_controller import JobController
 import settings
 
 
@@ -19,7 +19,7 @@ class RabbitMQClient(object):
         self.queue = settings.QUEUE_NAME_CONSUMER
         self.exchange = settings.EXCHANGE_NAME
         self.consume_routing_key = settings.CONSUME_ROUTING_KEY
-        self.scheduler = SchedulerJob()
+        self.job_controller = JobController()
 
     @property
     def credentials(self) -> pika.PlainCredentials:
@@ -114,7 +114,7 @@ class RabbitMQClient(object):
     def handle_delivery(self, channel, method, properties, body):
         data = json.loads(body.decode("utf-8"))
         try:
-            self.scheduler.add_job_to_scheduler(data)
+            self.job_controller.handle_package(data)
             channel.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
             # if response:
             #     self.publish(exchange=settings.EXCHANGE_NAME, routing_key=settings.PUBLISH_ROUTING_KEY,

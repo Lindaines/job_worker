@@ -1,5 +1,5 @@
 from logzero import logger
-from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
+from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR, EVENT_JOB_ADDED, EVENT_JOB_SUBMITTED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from datetime import datetime, timedelta
@@ -19,19 +19,22 @@ class SchedulerJob:
         self.scheduler = BackgroundScheduler()
         self.jobstore = MongoDBJobStore(database='scheduler', collection='jobs', client=self.client_mongo)
         self.scheduler.add_jobstore(jobstore=self.jobstore)
-        self.scheduler.add_listener(self.job_status_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
 
     @staticmethod
     def job_status_listener(event):
-        if event.exception:
-            print('The job crashed :(')
-        else:
-            print('The job worked :)')
+        print(event)
+        pass
+        # if event.exception:
+        #     print('The job crashed :(')
+        # else:
+        #     print('The job worked :)')
 
     def add_job_to_scheduler(self, data: dict):
         trigger_on = datetime.now() + timedelta(seconds=5)
         self.scheduler.add_job(id=data.get('id'), func=do_it, name='date', run_date=trigger_on)
-        logger.info('Task created')
+        self.scheduler.add_listener(self.job_status_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_ADDED |
+                                    EVENT_JOB_SUBMITTED)
+        logger.info('Job created')
         self.run()
 
     def run(self):

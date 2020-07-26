@@ -1,6 +1,13 @@
+from func_timeout import func_set_timeout
 from logzero import logger
+import time
+import settings
 
 
 class LegacyBaseImportWorker(object):
-    def process(self):
-        logger.info('Process have started!')
+
+    @func_set_timeout(timeout=settings.TIMEOUT_IN_SECONDS)
+    def process(self, id_job):
+        logger.info(f'Doing task {id_job}')
+        time.sleep(3)
+        logger.info(f'Done task {id_job}')

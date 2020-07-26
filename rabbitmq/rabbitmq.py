@@ -116,13 +116,6 @@ class RabbitMQClient(object):
         try:
             self.job_controller.handle_package(data)
             channel.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
-            # if response:
-            #     self.publish(exchange=settings.EXCHANGE_NAME, routing_key=settings.PUBLISH_ROUTING_KEY,
-            #                  message=response)
-            #     channel.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
-            # else:
-            #     self.on_search_fail(properties, data)
-            #     channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
         except ChannelClosed:
             self.reconnect()
 
@@ -131,6 +124,7 @@ class RabbitMQClient(object):
 
         except Exception as ex:
             logger.error(f"RabbitMQ --->> Failed to handle message: {ex} - {data}")
+            channel.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
             raise ex
 
     def on_search_fail(self, properties, data):

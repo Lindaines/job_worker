@@ -4,7 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from datetime import datetime, timedelta
 from pymongo import MongoClient
-from func_timeout import func_set_timeout
+from func_timeout import func_set_timeout, FunctionTimedOut
 import time
 
 from helpers.job import Job
@@ -32,8 +32,8 @@ class SchedulerJob:
 
     def add_job_to_scheduler(self, data: dict, publish):
         self.publish = publish
-        start_date = datetime.now() + timedelta(seconds=10)
-        # start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%d %H:%M:%S')
+        # start_date = datetime.now() + timedelta(seconds=30)
+        start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%d %H:%M:%S')
         id_job = data.get('id_job')
         self.scheduler.add_job(id=id_job, func=self.worker.process, name='date', run_date=start_date,
                                args=[id_job])
@@ -69,15 +69,19 @@ class SchedulerJob:
 
     def job_status_listener_local(self, event):
         constants = WorkerConstants()
-        if hasattr(event, 'exception'):
-            if event.exception:
-                logger.error("Job crashed")
-                job = Job(id_job='123', status_job=constants.ERROR)
-                self.publish(exchange="", routing_key=settings.QUEUE_NAME_PUBLISHER, message=job._asdict())
-
-
-@func_set_timeout(timeout=settings.TIMEOUT_IN_SECONDS)
-def do_it(id_job: str):
-    logger.info(f'Doing task {id_job}')
-    time.sleep(20)
-    logger.info(f'Done task {id_job}')
+        job_id = event.job_id
+        if hasattr(event, 'exception') and event.exception:
+            if isinstance(event.exception, FunctionTimedOut):
+                job = Job(id_job=job_id, status_job=constants.TIMEDOUT)
+                logger.error(f"Job {job_id} crashed due timeout")
+            else:
+                job = Job(id_job=job_id, status_job=constants.ERROR)
+                logger.error(f"Job {job_id} crashed due {str(event.exception)}")
+        else:
+            if event.code == constants.CREATED_JOB_CODE:
+                job = Job(id_job=job_id, status_job=constants.CREATE)
+            elif event.code == constants.RUNNING_JOB_CODE:
+                job = Job(id_job=job_id, status_job=constants.RUNNING)
+            else:
+                job = Job(id_job=job_id, status_job=constants.FINISHED)
+        self.publish(exchange="", routing_key=settings.QUEUE_NAME_PUBLISHER, message=job._asdict())

@@ -6,4 +6,5 @@ class WorkerConstants:
     CREATE = "CREATED"
     RUNNING = "RUNNING"
     ERROR = "ERROR"
-    TIMEOUT = "TIMEOUT"
+    TIMEDOUT = "TIMEDOUT"
+    FINISHED = "FINISHED"

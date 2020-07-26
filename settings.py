@@ -10,6 +10,7 @@ RABBITMQ_USER = os.environ.get("RABBITMQ_USER", "rabbitmq")
 RABBITMQ_PASSWORD = os.environ.get("RABBITMQ_PASSWORD", "rabbitmq")
 RABBITMQ_VHOST = os.environ.get("RABBITMQ_VHOST", "/")
 QUEUE_NAME_CONSUMER = os.environ.get("QUEUE_NAME_CONSUMER", "legacy-worker")
+QUEUE_NAME_PUBLISHER = os.environ.get("QUEUE_NAME_PUBLISHER", "status-jobs")
 EXCHANGE_NAME = os.environ.get("EXCHANGE_NAME", "exc-worker")
 CONSUME_ROUTING_KEY = os.environ.get("CONSUME_ROUTING_KEY", "legacy_import")
 

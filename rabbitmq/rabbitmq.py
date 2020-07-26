@@ -6,7 +6,7 @@ from controller.job_controller import JobController
 import settings
 
 
-class RabbitMQClient(object):
+class RabbitMQClient:
     _conn = None
     _channel = None
 
@@ -17,6 +17,7 @@ class RabbitMQClient(object):
         self.password = settings.RABBITMQ_PASSWORD
         self.vhost = settings.RABBITMQ_VHOST
         self.queue = settings.QUEUE_NAME_CONSUMER
+        self.queue_publish = settings.QUEUE_NAME_PUBLISHER
         self.exchange = settings.EXCHANGE_NAME
         self.consume_routing_key = settings.CONSUME_ROUTING_KEY
         self.job_controller = JobController()
@@ -69,6 +70,13 @@ class RabbitMQClient(object):
             auto_delete=False,
         )
 
+        self._channel.queue_declare(
+            queue=self.queue_publish,
+            durable=True,
+            exclusive=False,
+            auto_delete=False,
+        )
+
         self._channel.queue_bind(
             exchange=self.exchange,
             queue=self.queue,
@@ -114,7 +122,7 @@ class RabbitMQClient(object):
     def handle_delivery(self, channel, method, properties, body):
         data = json.loads(body.decode("utf-8"))
         try:
-            self.job_controller.handle_package(data)
+            self.job_controller.handle_package(data, self.publish)
             channel.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
         except ChannelClosed:
             self.reconnect()

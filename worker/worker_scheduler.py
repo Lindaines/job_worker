@@ -2,18 +2,21 @@ from logzero import logger
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR, EVENT_JOB_ADDED, EVENT_JOB_SUBMITTED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.mongodb import MongoDBJobStore
-import time
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from func_timeout import func_set_timeout
-from worker.worker_legacy_base_import import LegacyBaseImportWorker
-from worker import worker_listener
+import time
 
+from helpers.job import Job
+from helpers.worker_constants import WorkerConstants
+from worker.worker_legacy_base_import import LegacyBaseImportWorker
+from worker.worker_listener import job_status_listener
 import settings
 
 
 class SchedulerJob:
     def __init__(self):
+        self.publish = None
         client = MongoClient(
             host='localhost',
             username='root',
@@ -26,15 +29,15 @@ class SchedulerJob:
         self.jobstore = MongoDBJobStore(database='scheduler', collection='jobs', client=self.client_mongo)
         self.scheduler.add_jobstore(jobstore=self.jobstore)
         self.worker = LegacyBaseImportWorker()
-        self.listener = worker_listener
 
-    def add_job_to_scheduler(self, data: dict):
+    def add_job_to_scheduler(self, data: dict, publish):
+        self.publish = publish
         start_date = datetime.now() + timedelta(seconds=10)
         # start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%d %H:%M:%S')
         id_job = data.get('id_job')
         self.scheduler.add_job(id=id_job, func=self.worker.process, name='date', run_date=start_date,
                                args=[id_job])
-        self.scheduler.add_listener(self.listener.job_status_listener,
+        self.scheduler.add_listener(self.job_status_listener_local,
                                     EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_ADDED |
                                     EVENT_JOB_SUBMITTED)
         logger.info(f'Job created: {id_job}')
@@ -63,6 +66,14 @@ class SchedulerJob:
             self.scheduler.print_jobs()
         except:
             pass
+
+    def job_status_listener_local(self, event):
+        constants = WorkerConstants()
+        if hasattr(event, 'exception'):
+            if event.exception:
+                logger.error("Job crashed")
+                job = Job(id_job='123', status_job=constants.ERROR)
+                self.publish(exchange="", routing_key=settings.QUEUE_NAME_PUBLISHER, message=job._asdict())
 
 
 @func_set_timeout(timeout=settings.TIMEOUT_IN_SECONDS)

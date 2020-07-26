@@ -9,5 +9,5 @@ class LegacyBaseImportWorker(object):
     @func_set_timeout(timeout=settings.TIMEOUT_IN_SECONDS)
     def process(self, id_job):
         logger.info(f'Doing task {id_job}')
-        time.sleep(3)
+        time.sleep(9)
         logger.info(f'Done task {id_job}')

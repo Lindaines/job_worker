@@ -32,8 +32,7 @@ class SchedulerJob:
 
     def add_job_to_scheduler(self, data: dict, publish):
         self.publish = publish
-        # start_date = datetime.now() + timedelta(seconds=30)
-        start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%d %H:%M:%S')
+        start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%dT%H:%M:%S')
         id_job = data.get('id_job')
         self.scheduler.add_job(id=id_job, func=self.worker.process, name='date', run_date=start_date,
                                args=[id_job])

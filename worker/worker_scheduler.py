@@ -18,15 +18,15 @@ class SchedulerJob:
     def __init__(self):
         self.publish = None
         client = MongoClient(
-            host='localhost',
-            username='root',
-            password='KXZBE5PRfO',
-            port=27017,
+            host=settings.MONGO_HOST,
+            username=settings.MONGO_USER,
+            password=settings.MONGO_PASSWORD,
+            port=settings.MONGO_PORT,
             authSource="admin"
         )
         self.client_mongo = client
         self.scheduler = BackgroundScheduler()
-        self.jobstore = MongoDBJobStore(database='scheduler', collection='jobs', client=self.client_mongo)
+        self.jobstore = MongoDBJobStore(database=settings.MONGO_DATABASE, collection='jobs', client=self.client_mongo)
         self.scheduler.add_jobstore(jobstore=self.jobstore)
         self.worker = LegacyBaseImportWorker()
 
@@ -79,7 +79,7 @@ class SchedulerJob:
                 logger.error(f"Job {job_id} crashed due {str(event.exception)}")
         else:
             if event.code == constants.CREATED_JOB_CODE:
-                job = Job(id_job=job_id, status_job=constants.CREATE)
+                job = Job(id_job=job_id, status_job=constants.SCHEDULED)
             elif event.code == constants.RUNNING_JOB_CODE:
                 job = Job(id_job=job_id, status_job=constants.RUNNING)
             else:
